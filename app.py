@@ -8,6 +8,7 @@ from flask import Flask # ייבוא המחלקה הראשית של Flask ליצ
 from flask_jwt_extended import JWTManager # ייבוא מנהל האימות (JWT) לטיפול בטוקנים והתחברות
 # מייבאים את המודלים (db, bcrypt) כדי לאתחל אותם
 from models import db, bcrypt # ייבוא אובייקטי מסד הנתונים וההצפנה שיצרנו ב-models.py, כדי לחבר אותם לאפליקציה כאן
+from dotenv import load_dotenv
 
 # --- ייבוא ה-Blueprints שיצרנו בתיקיית routes ---
 # Blueprints הם כמו תת-אפליקציות המכילות את הנתיבים השונים
@@ -19,6 +20,7 @@ from routes.general import general_bp # ייבוא המודול הכללי (כמ
 # 1. יצירת האפליקציה
 app = Flask(__name__) # יצירת המופע הראשי של אפליקציית Flask
 
+load_dotenv()  # זה טוען את המשתנים מקובץ ה-.env לזיכרון
 # ====================
 # הגדרות (Configuration)
 # כאן אנחנו קובעים משתנים גלובליים שישמשו את האפליקציה
@@ -27,7 +29,7 @@ app = Flask(__name__) # יצירת המופע הראשי של אפליקציית
 basedir = os.path.abspath(os.path.dirname(__file__)) # מציאת הנתיב המלא לתיקייה שבה נמצא הקובץ הנוכחי (app.py)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'recipes.db') # הגדרת מיקום קובץ מסד הנתונים (SQLite) בתוך התיקייה הראשית
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # כיבוי תכונה של SQLAlchemy שעוקבת אחרי שינויים באובייקטים, כדי לחסוך בזיכרון (לא נחוץ לנו)
-app.config['JWT_SECRET_KEY'] = 'super-secret-key-for-development-only-change-me-in-production' # מפתח סודי המשמש לחתימה על הטוקנים (JWT). חשוב מאוד לאבטחה!
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'fallback-key-for-local')
 # הגדרות תיקיית ההעלאות
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'images') # הגדרת הנתיב המלא לתיקייה שבה יישמרו תמונות המשתמשים
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp'} # הגדרת סט (קבוצה) של סיומות קבצים מותרות להעלאה, מטעמי אבטחה
@@ -64,5 +66,6 @@ app.register_blueprint(general_bp) # רישום המודול הכללי (general
 # הרצת השרת
 # ====================
 if __name__ == '__main__': # תנאי שבודק האם הקובץ הזה מורץ ישירות (ולא מיובא כמודול לקובץ אחר)
-    # מומלץ להשתמש בפורט קבוע כדי למנוע בעיות
-    app.run(debug=True, port=5000) # הפעלת שרת הפיתוח. debug=True מפעיל מצב דיבאג (טעינה מחדש בשינויים והצגת שגיאות מפורטת).
+   # אם אנחנו במחשב האישי - debug יהיה True. בשרת אמיתי - False.
+   debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
+   app.run(debug=debug_mode, port=5000)
